@@ -23,9 +23,8 @@ public class MainActivity extends AppCompatActivity implements ChessDelegate {
     // IP wifi laptop: 192.168.41.105
     // IP wifi phone:192.168.41.101
     // 127.0.0.1
-    private String socketHost = "10.0.2.2";
+    private String socketHost = "192.168.1.7";
     private int socketPort = 50000;
-    private int socketGuestPort = 50001;
     private static final String TAG = "MainActivity";
     private ChessView chessView;
     private Button resetButton;
@@ -34,14 +33,11 @@ public class MainActivity extends AppCompatActivity implements ChessDelegate {
     private PrintWriter printWriter = null;
     private ServerSocket serverSocket = null;
     private ChessGame chessGame = new ChessGame();
-    private boolean isEmulator = Build.FINGERPRINT.contains("generic");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        Log.d(TAG, String.valueOf(isEmulator));
 
         chessView = findViewById(R.id.chess_view);
         chessView.chessDelegate = this;
@@ -56,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements ChessDelegate {
                     try {
                         serverSocket.close();
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        // ignored
                     }
                 }
                 listenButton.setEnabled(true);
@@ -68,20 +64,14 @@ public class MainActivity extends AppCompatActivity implements ChessDelegate {
             @Override
             public void onClick(View view) {
                 listenButton.setEnabled(false);
-                int port;
-                if (isEmulator) {
-                    port = socketGuestPort;
-                } else {
-                    port = socketPort;
-                }
-                Toast.makeText(getBaseContext(), "listening on " + port, Toast.LENGTH_SHORT);
-                Log.d(TAG, "socket server listen on port " + port);
+                Log.d(TAG, "socket server listen on port " + socketPort);
                 Executors.newSingleThreadExecutor().execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            serverSocket = new ServerSocket(port);
+                            serverSocket = new ServerSocket(socketPort);
                             Socket socket = serverSocket.accept();
+                            Log.d(TAG, "connected from " + socket.getInetAddress());
                             receiveMove(socket);
                         } catch (IOException e) {
                             // ignored
@@ -103,8 +93,6 @@ public class MainActivity extends AppCompatActivity implements ChessDelegate {
                         try {
                             socket = new Socket(socketHost, socketPort);
                             receiveMove(socket);
-                        } catch (ConnectException e) {
-                            Toast.makeText(getBaseContext(), "connection failed", Toast.LENGTH_SHORT);
                         } catch (IOException e) {
                             // ignored
                         }
@@ -117,19 +105,20 @@ public class MainActivity extends AppCompatActivity implements ChessDelegate {
     private void receiveMove(Socket socket) {
         try {
             Scanner scanner = new Scanner(socket.getInputStream());
-            printWriter = new PrintWriter(socket.getOutputStream());
+            printWriter = new PrintWriter(socket.getOutputStream(), true);
             while (scanner.hasNextLine()) {
                 List<Integer> move = new ArrayList<>();
                 for (String str : scanner.nextLine().split(",")) {
                     move.add(Integer.parseInt(str));
                 }
-                runOnUiThread(new Thread(new Runnable() {
+                runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        chessGame.movePiece(new Square(move.get(0), move.get(1)), new Square(move.get(3), move.get(4)));
+                        chessGame.movePiece(new Square(move.get(0), move.get(1)),
+                                            new Square(move.get(2), move.get(3)));
                         chessView.invalidate();
                     }
-                }));
+                });
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
