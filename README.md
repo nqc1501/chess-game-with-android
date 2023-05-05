@@ -1,2 +1,2 @@
-# chess_game_with_android
+# Chess game for 2 players use socket
 - Vẫn còn chưa hoàn thiện!!!!
