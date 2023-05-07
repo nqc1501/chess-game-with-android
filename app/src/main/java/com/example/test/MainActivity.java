@@ -20,10 +20,8 @@ import java.util.Scanner;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements ChessDelegate {
-    // IP wifi laptop: 192.168.41.105
-    // IP wifi phone:192.168.41.101
     // 127.0.0.1
-    private String socketHost = "192.168.1.7";
+    private String socketHost = "change to ip you want to connect";
     private int socketPort = 50000;
     private static final String TAG = "MainActivity";
     private ChessView chessView;
